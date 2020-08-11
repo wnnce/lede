@@ -1,0 +1,438 @@
+#
+# This is free software, lisence use MIT.
+# 
+# Copyright (C) 2019 P3TERX <https://p3terx.com>
+# Copyright (C) 2019 KFERMercer <KFER.Mercer@gmail.com>
+# 
+# <https://github.com/KFERMercer/OpenWrt-CI>
+# 
+
+name: OpenWrt-CI
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+
+  build_openwrt:
+
+    name: Build OpenWrt and release
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: master
+
+      - name: Space cleanup
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          docker rmi `docker images -q`
+          sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d
+          sudo -E apt-get -y purge azure-cli ghc* zulu* hhvm llvm* firefox google* dotnet* powershell openjdk* mysql* php*
+          sudo -E apt-get update
+          sudo -E apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs gcc-multilib g++-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler antlr3 gperf
+          sudo -E apt-get -y autoremove --purge
+          sudo -E apt-get clean
+
+          df -h
+
+      - name: Update feeds
+        run: |
+          sed -i 's/\"#src-git\"/\"src-git\"/g' ./feeds.conf.default
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Generate configuration file
+        run: |
+          rm -f ./.config*
+          touch ./.config
+          cat >> .config <<EOF
+          CONFIG_TARGET_x86=y
+          CONFIG_TARGET_x86_64=y
+          CONFIG_TARGET_x86_64_DEVICE_generic=y
+          CONFIG_ARIA2_BITTORRENT=y
+          CONFIG_ARIA2_NOXML=y
+          CONFIG_ARIA2_OPENSSL=y
+          CONFIG_ARIA2_WEBSOCKET=y
+          CONFIG_GNUTLS_ALPN=y
+          CONFIG_GNUTLS_ANON=y
+          CONFIG_GNUTLS_DTLS_SRTP=y
+          CONFIG_GNUTLS_HEARTBEAT=y
+          CONFIG_GNUTLS_OCSP=y
+          CONFIG_GNUTLS_PSK=y
+          CONFIG_LIBCURL_COOKIES=y
+          CONFIG_LIBCURL_FILE=y
+          CONFIG_LIBCURL_FTP=y
+          CONFIG_LIBCURL_HTTP=y
+          CONFIG_LIBCURL_MBEDTLS=y
+          CONFIG_LIBCURL_NO_SMB="!"
+          CONFIG_LIBCURL_PROXY=y
+          CONFIG_PACKAGE_alsa-lib=y
+          CONFIG_PACKAGE_alsa-utils=y
+          CONFIG_PACKAGE_aria2=y
+          CONFIG_PACKAGE_ariang=y
+          CONFIG_PACKAGE_attr=m
+          CONFIG_PACKAGE_avahi-dbus-daemon=y
+          CONFIG_PACKAGE_baidupcs-web=y
+          CONFIG_PACKAGE_bash=y
+          CONFIG_PACKAGE_blkid=y
+          CONFIG_PACKAGE_bnx2x-firmware=y
+          CONFIG_PACKAGE_boost-chrono=y
+          CONFIG_PACKAGE_boost-random=y
+          CONFIG_PACKAGE_btrfs-progs=y
+          CONFIG_PACKAGE_ca-bundle=y
+          CONFIG_PACKAGE_cgroupfs-mount=y
+          CONFIG_PACKAGE_chinadns-ng=y
+          CONFIG_PACKAGE_collectd=y
+          CONFIG_PACKAGE_collectd-mod-cpu=y
+          CONFIG_PACKAGE_collectd-mod-interface=y
+          CONFIG_PACKAGE_collectd-mod-iwinfo=y
+          CONFIG_PACKAGE_collectd-mod-load=y
+          CONFIG_PACKAGE_collectd-mod-memory=y
+          CONFIG_PACKAGE_collectd-mod-network=y
+          CONFIG_PACKAGE_collectd-mod-rrdtool=y
+          CONFIG_PACKAGE_containerd=y
+          CONFIG_PACKAGE_coreutils-nohup=y
+          CONFIG_PACKAGE_curl=y
+          CONFIG_PACKAGE_dbus=y
+          CONFIG_PACKAGE_docker-ce=y
+          CONFIG_PACKAGE_e100-firmware=y
+          CONFIG_PACKAGE_frpc=y
+          CONFIG_PACKAGE_fuse-utils=y
+          CONFIG_PACKAGE_haproxy=y
+          CONFIG_PACKAGE_hd-idle=y
+          CONFIG_PACKAGE_icu=y
+          CONFIG_PACKAGE_iptables-mod-conntrack-extra=y
+          CONFIG_PACKAGE_iptables-mod-extra=y
+          CONFIG_PACKAGE_iptables-mod-ipopt=y
+          CONFIG_PACKAGE_kmod-3c59x=y
+          CONFIG_PACKAGE_kmod-ac97=y
+          CONFIG_PACKAGE_kmod-alx=y
+          CONFIG_PACKAGE_kmod-atl1=y
+          CONFIG_PACKAGE_kmod-atl1c=y
+          CONFIG_PACKAGE_kmod-atl1e=y
+          CONFIG_PACKAGE_kmod-atl2=y
+          CONFIG_PACKAGE_kmod-atm=y
+          CONFIG_PACKAGE_kmod-b44=y
+          CONFIG_PACKAGE_kmod-be2net=y
+          CONFIG_PACKAGE_kmod-bnx2x=y
+          CONFIG_PACKAGE_kmod-br-netfilter=y
+          CONFIG_PACKAGE_kmod-dax=y
+          CONFIG_PACKAGE_kmod-dm=y
+          CONFIG_PACKAGE_kmod-dm9000=y
+          CONFIG_PACKAGE_kmod-dummy=y
+          CONFIG_PACKAGE_kmod-e100=y
+          CONFIG_PACKAGE_kmod-et131x=y
+          CONFIG_PACKAGE_kmod-ethoc=y
+          CONFIG_PACKAGE_kmod-fs-btrfs=y
+          CONFIG_PACKAGE_kmod-fuse=y
+          CONFIG_PACKAGE_kmod-hfcmulti=y
+          CONFIG_PACKAGE_kmod-hfcpci=y
+          CONFIG_PACKAGE_kmod-iavf=y
+          CONFIG_PACKAGE_kmod-ifb=y
+          CONFIG_PACKAGE_kmod-ikconfig=y
+          CONFIG_PACKAGE_kmod-ipt-conntrack-extra=y
+          CONFIG_PACKAGE_kmod-ipt-extra=y
+          CONFIG_PACKAGE_kmod-ipt-ipopt=y
+          CONFIG_PACKAGE_kmod-irqbypass=y
+          CONFIG_PACKAGE_kmod-ixgbevf=y
+          CONFIG_PACKAGE_kmod-kvm-amd=y
+          CONFIG_PACKAGE_kmod-kvm-x86=y
+          CONFIG_PACKAGE_kmod-lib-crc32c=y
+          CONFIG_PACKAGE_kmod-lib-lzo=y
+          CONFIG_PACKAGE_kmod-lib-raid6=y
+          CONFIG_PACKAGE_kmod-lib-xor=y
+          CONFIG_PACKAGE_kmod-lib-zstd=y
+          CONFIG_PACKAGE_kmod-md-mod=y
+          CONFIG_PACKAGE_kmod-md-raid0=y
+          CONFIG_PACKAGE_kmod-md-raid1=y
+          CONFIG_PACKAGE_kmod-md-raid10=y
+          CONFIG_PACKAGE_kmod-mdio-gpio=y
+          CONFIG_PACKAGE_kmod-misdn=y
+          CONFIG_PACKAGE_kmod-natsemi=y
+          CONFIG_PACKAGE_kmod-ne2k-pci=y
+          CONFIG_PACKAGE_kmod-nf-ipvs=y
+          CONFIG_PACKAGE_kmod-niu=y
+          CONFIG_PACKAGE_kmod-of-mdio=y
+          CONFIG_PACKAGE_kmod-phy-bcm84881=y
+          CONFIG_PACKAGE_kmod-phy-broadcom=y
+          CONFIG_PACKAGE_kmod-phy-realtek=y
+          CONFIG_PACKAGE_kmod-phylib-broadcom=y
+          CONFIG_PACKAGE_kmod-phylink=y
+          CONFIG_PACKAGE_kmod-r6040=y
+          CONFIG_PACKAGE_kmod-r8169=y
+          CONFIG_PACKAGE_kmod-regmap-core=y
+          CONFIG_PACKAGE_kmod-sched-connmark=y
+          CONFIG_PACKAGE_kmod-sched-core=y
+          CONFIG_PACKAGE_kmod-sfp=y
+          CONFIG_PACKAGE_kmod-siit=y
+          CONFIG_PACKAGE_kmod-sis190=y
+          CONFIG_PACKAGE_kmod-sis900=y
+          CONFIG_PACKAGE_kmod-skge=y
+          CONFIG_PACKAGE_kmod-sky2=y
+          CONFIG_PACKAGE_kmod-solos-pci=y
+          CONFIG_PACKAGE_kmod-sound-core=y
+          CONFIG_PACKAGE_kmod-sound-hda-codec-hdmi=y
+          CONFIG_PACKAGE_kmod-sound-hda-codec-realtek=y
+          CONFIG_PACKAGE_kmod-sound-hda-codec-via=y
+          CONFIG_PACKAGE_kmod-sound-hda-core=y
+          CONFIG_PACKAGE_kmod-sound-hda-intel=y
+          CONFIG_PACKAGE_kmod-sound-i8x0=y
+          CONFIG_PACKAGE_kmod-sound-mpu401=y
+          CONFIG_PACKAGE_kmod-sound-via82xx=y
+          CONFIG_PACKAGE_kmod-spi-ks8995=y
+          CONFIG_PACKAGE_kmod-ssb=y
+          CONFIG_PACKAGE_kmod-swconfig=y
+          CONFIG_PACKAGE_kmod-switch-bcm53xx=y
+          CONFIG_PACKAGE_kmod-switch-bcm53xx-mdio=y
+          CONFIG_PACKAGE_kmod-switch-ip17xx=y
+          CONFIG_PACKAGE_kmod-switch-mvsw61xx=y
+          CONFIG_PACKAGE_kmod-switch-rtl8306=y
+          CONFIG_PACKAGE_kmod-switch-rtl8366-smi=y
+          CONFIG_PACKAGE_kmod-switch-rtl8366rb=y
+          CONFIG_PACKAGE_kmod-switch-rtl8366s=y
+          CONFIG_PACKAGE_kmod-switch-rtl8367b=y
+          CONFIG_PACKAGE_kmod-tg3=y
+          CONFIG_PACKAGE_kmod-usb-audio=y
+          CONFIG_PACKAGE_kmod-veth=y
+          CONFIG_PACKAGE_kmod-via-rhine=y
+          CONFIG_PACKAGE_kmod-via-velocity=y
+          CONFIG_PACKAGE_libattr=y
+          CONFIG_PACKAGE_libavahi-client=y
+          CONFIG_PACKAGE_libavahi-dbus-support=y
+          CONFIG_PACKAGE_libbz2=y
+          CONFIG_PACKAGE_libcap=y
+          CONFIG_PACKAGE_libcap-ng=y
+          CONFIG_PACKAGE_libconfig=y
+          CONFIG_PACKAGE_libcurl=y
+          CONFIG_PACKAGE_libdaemon=y
+          CONFIG_PACKAGE_libdb47=y
+          CONFIG_PACKAGE_libdbus=y
+          CONFIG_PACKAGE_libdevmapper=y
+          CONFIG_PACKAGE_libdouble-conversion=y
+          CONFIG_PACKAGE_libexpat=y
+          CONFIG_PACKAGE_libffi=y
+          CONFIG_PACKAGE_libfuse=y
+          CONFIG_PACKAGE_libgdbm=y
+          CONFIG_PACKAGE_libgnutls=m
+          CONFIG_PACKAGE_libltdl=y
+          CONFIG_PACKAGE_liblua5.3=y
+          CONFIG_PACKAGE_liblzma=y
+          CONFIG_PACKAGE_liblzo=y
+          CONFIG_PACKAGE_libmount=y
+          CONFIG_PACKAGE_libnettle=m
+          CONFIG_PACKAGE_libnetwork=y
+          CONFIG_PACKAGE_libpam=m
+          CONFIG_PACKAGE_libpcre2-16=y
+          CONFIG_PACKAGE_libpopt=y
+          CONFIG_PACKAGE_librrd1=y
+          CONFIG_PACKAGE_libsoxr=y
+          CONFIG_PACKAGE_libsqlite3=y
+          CONFIG_PACKAGE_libtasn1=m
+          CONFIG_PACKAGE_libtirpc=m
+          CONFIG_PACKAGE_libwebsockets-full=y
+          CONFIG_PACKAGE_libxml2=y
+          CONFIG_PACKAGE_libzstd=y
+          CONFIG_PACKAGE_lm-sensors-detect=y
+          CONFIG_PACKAGE_lsblk=y
+          CONFIG_PACKAGE_luci-app-airplay2=y
+          CONFIG_PACKAGE_luci-app-aria2=y
+          CONFIG_PACKAGE_luci-app-baidupcs-web=y
+          CONFIG_PACKAGE_luci-app-diskman=y
+          CONFIG_PACKAGE_luci-app-diskman_INCLUDE_btrfs_progs=y
+          CONFIG_PACKAGE_luci-app-diskman_INCLUDE_lsblk=y
+          CONFIG_PACKAGE_luci-app-diskman_INCLUDE_mdadm=y
+          CONFIG_PACKAGE_luci-app-docker=y
+          CONFIG_PACKAGE_luci-app-familycloud=y
+          CONFIG_PACKAGE_luci-app-frpc=y
+          CONFIG_PACKAGE_luci-app-hd-idle=y
+          CONFIG_PACKAGE_luci-app-mwan3=y
+          CONFIG_PACKAGE_luci-app-mwan3helper=y
+          CONFIG_PACKAGE_luci-app-netdata=y
+          CONFIG_PACKAGE_luci-app-passwall=y
+          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks=y
+          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan=y
+          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_GO=y
+          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Kcptun=y
+          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Brook=y
+          CONFIG_PACKAGE_luci-app-qbittorrent=y
+          CONFIG_PACKAGE_luci-app-qos=y
+          CONFIG_PACKAGE_luci-app-rclone=y
+          CONFIG_PACKAGE_luci-app-statistics=y
+          CONFIG_PACKAGE_luci-app-syncdial=y
+          CONFIG_PACKAGE_luci-app-ttyd=y
+          CONFIG_PACKAGE_luci-app-watchcat=y
+          CONFIG_PACKAGE_luci-app-wrtbwmon=y
+          CONFIG_PACKAGE_luci-i18n-airplay2-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-aria2-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-docker-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-frpc-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-hd-idle-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-mwan3-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-mwan3helper-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-netdata-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-qbittorrent-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-qos-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-rclone-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-statistics-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-ttyd-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-watchcat-zh-cn=y
+          CONFIG_PACKAGE_luci-i18n-wrtbwmon-zh-cn=y
+          CONFIG_PACKAGE_luci-lib-docker=y
+          CONFIG_PACKAGE_luci-lib-json=y
+          CONFIG_PACKAGE_luci-theme-argon=y
+          CONFIG_PACKAGE_luci-theme-argon-dark-mod=y
+          CONFIG_PACKAGE_luci-theme-argon-light-mod=y
+          CONFIG_PACKAGE_luci-theme-bootstrap-mod=y
+          CONFIG_PACKAGE_luci-theme-freifunk-generic=y
+          CONFIG_PACKAGE_luci-theme-material=y
+          CONFIG_PACKAGE_luci-theme-netgear=y
+          CONFIG_PACKAGE_mdadm=y
+          CONFIG_PACKAGE_mount-utils=y
+          CONFIG_PACKAGE_mwan3=y
+          CONFIG_PACKAGE_netdata=y
+          CONFIG_PACKAGE_parted=y
+          CONFIG_PACKAGE_perl=y
+          CONFIG_PACKAGE_perlbase-base=y
+          CONFIG_PACKAGE_perlbase-bytes=y
+          CONFIG_PACKAGE_perlbase-class=y
+          CONFIG_PACKAGE_perlbase-config=y
+          CONFIG_PACKAGE_perlbase-cwd=y
+          CONFIG_PACKAGE_perlbase-errno=y
+          CONFIG_PACKAGE_perlbase-essential=y
+          CONFIG_PACKAGE_perlbase-fcntl=y
+          CONFIG_PACKAGE_perlbase-file=y
+          CONFIG_PACKAGE_perlbase-filehandle=y
+          CONFIG_PACKAGE_perlbase-i18n=y
+          CONFIG_PACKAGE_perlbase-integer=y
+          CONFIG_PACKAGE_perlbase-io=y
+          CONFIG_PACKAGE_perlbase-list=y
+          CONFIG_PACKAGE_perlbase-locale=y
+          CONFIG_PACKAGE_perlbase-params=y
+          CONFIG_PACKAGE_perlbase-posix=y
+          CONFIG_PACKAGE_perlbase-re=y
+          CONFIG_PACKAGE_perlbase-scalar=y
+          CONFIG_PACKAGE_perlbase-selectsaver=y
+          CONFIG_PACKAGE_perlbase-socket=y
+          CONFIG_PACKAGE_perlbase-symbol=y
+          CONFIG_PACKAGE_perlbase-tie=y
+          CONFIG_PACKAGE_perlbase-unicore=y
+          CONFIG_PACKAGE_perlbase-utf8=y
+          CONFIG_PACKAGE_perlbase-xsloader=y
+          CONFIG_PACKAGE_python3=y
+          CONFIG_PACKAGE_python3-asyncio=y
+          CONFIG_PACKAGE_python3-base=y
+          CONFIG_PACKAGE_python3-cgi=y
+          CONFIG_PACKAGE_python3-cgitb=y
+          CONFIG_PACKAGE_python3-codecs=y
+          CONFIG_PACKAGE_python3-ctypes=y
+          CONFIG_PACKAGE_python3-dbm=y
+          CONFIG_PACKAGE_python3-decimal=y
+          CONFIG_PACKAGE_python3-distutils=y
+          CONFIG_PACKAGE_python3-email=y
+          CONFIG_PACKAGE_python3-gdbm=y
+          CONFIG_PACKAGE_python3-light=y
+          CONFIG_PACKAGE_python3-logging=y
+          CONFIG_PACKAGE_python3-lzma=y
+          CONFIG_PACKAGE_python3-multiprocessing=y
+          CONFIG_PACKAGE_python3-ncurses=y
+          CONFIG_PACKAGE_python3-openssl=y
+          CONFIG_PACKAGE_python3-pydoc=y
+          CONFIG_PACKAGE_python3-sqlite3=y
+          CONFIG_PACKAGE_python3-unittest=y
+          CONFIG_PACKAGE_python3-urllib=y
+          CONFIG_PACKAGE_python3-xml=y
+          CONFIG_PACKAGE_qBittorrent=y
+          CONFIG_PACKAGE_qos-scripts=y
+          CONFIG_PACKAGE_qt5-core=y
+          CONFIG_PACKAGE_qt5-network=y
+          CONFIG_PACKAGE_qt5-xml=y
+          CONFIG_PACKAGE_r8169-firmware=y
+          CONFIG_PACKAGE_rblibtorrent=y
+          CONFIG_PACKAGE_rclone=y
+          CONFIG_PACKAGE_rclone-ng=y
+          CONFIG_PACKAGE_rclone-webui-react=y
+          CONFIG_PACKAGE_rrdtool1=y
+          CONFIG_PACKAGE_runc=y
+          CONFIG_PACKAGE_samba4-libs=y
+          CONFIG_PACKAGE_samba4-server=y
+          CONFIG_PACKAGE_shairport-sync-openssl=y
+          CONFIG_PACKAGE_smartmontools=y
+          CONFIG_PACKAGE_tc=y
+          CONFIG_PACKAGE_tcping=y
+          CONFIG_PACKAGE_tini=y
+          CONFIG_PACKAGE_trojan-go=y
+          CONFIG_PACKAGE_ttyd=y
+          CONFIG_PACKAGE_uclibcxx=y
+          CONFIG_PACKAGE_unzip=y
+          CONFIG_PACKAGE_watchcat=y
+          CONFIG_PERL_NOCOMMENT=y
+          CONFIG_PERL_THREADS=y
+          CONFIG_SAMBA4_SERVER_AVAHI=y
+          CONFIG_SAMBA4_SERVER_NETBIOS=y
+          CONFIG_SAMBA4_SERVER_VFS=y
+          CONFIG_SQLITE3_DYNAMIC_EXTENSIONS=y
+          CONFIG_SQLITE3_FTS3=y
+          CONFIG_SQLITE3_FTS4=y
+          CONFIG_SQLITE3_FTS5=y
+          CONFIG_SQLITE3_JSON1=y
+          CONFIG_SQLITE3_RTREE=y
+          CONFIG_TARGET_ROOTFS_PARTSIZE=1024
+          CONFIG_TROJAN_GO_COMPRESS_UPX=y
+          CONFIG_ZSTD_OPTIMIZE_O3=y
+          EOF
+          sed -i 's/^[ \t]*//g' ./.config
+          make defconfig
+
+      - name: Make download
+        run: |
+          make download -j8
+          find dl -size -1024c -exec rm -f {} \;
+
+      - name: Compile firmware
+        run: |
+          make -j$(nproc) || make -j1 V=s
+          echo "======================="
+          echo "Space usage:"
+          echo "======================="
+          df -h
+          echo "======================="
+          du -h --max-depth=1 ./ --exclude=build_dir --exclude=bin
+          du -h --max-depth=1 ./build_dir
+          du -h --max-depth=1 ./bin
+
+      - name: Prepare artifact
+        run: find ./bin/targets/ -type d -name "packages" | xargs rm -rf {}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@master
+        with:
+          name: OpenWrt_firmware
+          path: ./bin/targets/
+
+      - name: Create release
+        if: github.event == 'push'
+        id: create_release
+        uses: actions/create-release@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false      
+
+      - name: Upload release asset
+        if: github.event == 'push'
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/targets/*/*/
