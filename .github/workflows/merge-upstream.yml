@@ -12,6 +12,8 @@ on:
   push:
     branches: 
       - master
+  watch:
+    types: [started]
   schedule:
     - cron: 30 19 * * *
 
